@@ -22,6 +22,7 @@
     </h2>
     <!-- <img id='imgIv' src="{{ url_for('capture_image') }}?" style="border:1px;width:1728px;height:1152px> -->
     <img id='imgIv' src='' style="border:1px;width:1728px;height:1152px;display:none">
+    <textarea id='taIv' rows='30' readonly style='width:66%;display:none;margin-top:5px'></textarea>
     <hr>
     
   </body>
@@ -36,6 +37,7 @@
 	var urlLv = urlPrefix + '/live_view?';
 	var urlPv = urlPrefix + '/capture_preview?';
 	var urlIv = urlPrefix + '/capture_image?';
+    var urlExif = urlPrefix + '/exif_image';
 
 	function sleep(time) {
 	    var startTime = new Date().getTime() + parseInt(time, 10);
@@ -63,6 +65,7 @@
 			$(imgIv).attr('src', '');
 			$(btnPv).attr('value', '刷新');
 			$(btnIv).attr('value', '开启');
+            $(taIv).hide();
 			
 		} else {
 			// refresh
@@ -82,6 +85,13 @@
 			$(imgPv).attr('src', '');
 			$(btnPv).attr('value', '开启');
 			$(btnIv).attr('value', '刷新');
+            $(taIv).val('');
+            $(taIv).show();
+            $.get(urlExif, function(data, status){
+                console.debug(status);
+                //console.debug(data);
+                $(taIv).val(JSON.stringify(data,null,2));
+            });
 		} else {
 			// refresh
 			$(imgIv).attr('src', $(imgIv).attr('src').split('?')[0]+'?'+Math.random());
@@ -105,6 +115,7 @@
 			$(btnPv).attr('value', '开启');
 			$(btnIv).attr('value', '开启');
 			$(btnLv).attr('value', '关闭');
+            $(taIv).hide();
 		} else {
 			bLvOn = false;
 			$(imgLv).css({display: 'none'});

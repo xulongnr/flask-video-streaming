@@ -3,6 +3,7 @@ from importlib import import_module
 import os
 import sys
 import json
+import exifread
 from datetime import datetime
 from flask import Flask, render_template, Response, jsonify, Blueprint, request, redirect, abort
 from flask_swagger import swagger
@@ -34,7 +35,7 @@ def gen(camera):
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
 
-@app.route('/live_view', methods=['DELETE'])
+@app.route('/api/live_view', methods=['DELETE'])
 def live_view_del():
     global _camera
     if _camera != None:
@@ -165,7 +166,7 @@ def get_config(config_name):
     config = camera.get_config()
     item = config.get_child_by_name(str(config_name))
     camera.exit()
-    return Response(json.dumps({config_name: item.get_value()}))
+    return Response(json.dumps({config_name: item.get_value()}), mimetype='application/json')
 
 
 @app.route('/api/config', methods=['PUT'])
@@ -197,7 +198,10 @@ def _set_config(name, value):
             abort(400)
    
         # set 
-        item.set_value(str(value))
+        if type(value) is unicode:
+            item.set_value(str(value))
+        else:
+            item.set_value(value)
         camera.set_config(config)
         #yield camera
 
@@ -229,7 +233,7 @@ import piggyphoto
 def list_config():
     cam = piggyphoto.camera()
     config = cam.list_config()
-    return Response(json.dumps({'config': config}))
+    return Response(json.dumps({'config': config}), mimetype='application/json')
 
 
 @app.route('/api/capture_preview')
@@ -248,6 +252,46 @@ def capture_image(filename='capture_image.jpg'):
     with open(filename, "rb") as f:
         image = f.read()
     return Response(image, mimetype='image/jpeg')
+
+
+@app.route('/api/exif_image')
+def exif_preview(filename='capture_image.jpg'):
+    data = _get_exif(filename)
+    return Response(json.dumps(data), mimetype='application/json')
+
+
+def _get_exif(path):
+    exif_json = {}
+    with open(path, 'rb') as pf:
+        exif = exifread.process_file(pf)
+        exif_info = {}
+        prefixes = ['EXIF', 'MakerNote', 'Image', 'Thumbnail', 'Interoperability', 'GPS']
+        #for prefix in prefixes:
+        #    exif_info[prefix] = []
+        #    for key in exif.keys():
+        #        if key.startswith(prefix):
+        #            exif_info[prefix].append(key)
+        #print exif_info    
+       
+        for prefix in prefixes:
+            exif_json[prefix] = {} 
+
+            #for key in exif.keys():
+            for key in ('Image Make', 'Image Model', 'Image DateTime', 'Image Orientation',
+                        'Image Copyright', 'Image Artist',
+                        'EXIF DateTimeOriginal', 'EXIF LensModel', 'EXIF Flash', 'EXIF ColorSpace',
+                        'EXIF ExposureProgram', 'EXIF ExposureTime', 'EXIF ShutterSpeedValue',
+                        'EXIF ApertureValue', 'EXIF FNumber', 'EXIF ISOSpeedRatings',
+                        'EXIF FocalLength', 'EXIF WhiteBalance', 'EXIF SceneCaptureType', 
+                        'MakerNote AFAreaMode', 'MakerNote LongExposureNoiseReduction2', 'MakerNote SlowShutter',
+                        'MakerNote AFPointUsed', 'MakerNote Contrast', 'MakerNote RawJpgSize'):
+                if key in exif:
+                    print key, ':', exif[key]
+                    #exif_json[key] = str(exif[key])
+                    if key.startswith(prefix):
+                        exif_json[prefix][key] = str(exif[key])
+
+    return exif_json
 
 
 if __name__ == '__main__':
