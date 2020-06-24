@@ -73,7 +73,17 @@
 		}
 		
 	}
-
+	function updateExif() {
+		$(taIv).hide();
+		$(taIv).val('');
+		$.get(urlExif, function(data, status){
+			console.debug(status);
+			//console.debug(data);
+			$(taIv).val(JSON.stringify(data,null,2));
+			$(taIv).show();
+			$(btnIv).attr('value', '刷新');
+		});
+	}
 	function onSwitchImage() {
 		if (!bIvOn) {
 			bIvOn = true;
@@ -84,22 +94,13 @@
 			$(imgIv).attr('src', urlIv);
 			$(imgPv).attr('src', '');
 			$(btnPv).attr('value', '开启');
-			$(btnIv).attr('value', '刷新');
-			$.get(urlExif, function(data, status){
-				console.debug(status);
-				//console.debug(data);
-				$(taIv).val(JSON.stringify(data,null,2));
-				$(taIv).show();
-			});
+			$(btnIv).attr('value', '开启中...');
+			setTimeout(updateExif(), 2000);
 		} else {
 			// refresh
 			$(imgIv).attr('src', $(imgIv).attr('src').split('?')[0]+'?'+Math.random());
-			$(taIv).hide();
-			$.get(urlExif, function(data, status){
-				console.debug(status);
-				$(taIv).val(JSON.stringify(data,null,2));
-				$(taIv).show();
-			});
+			$(btnIv).attr('value', '刷新中...');
+			setTimeout(updateExif(), 2000);
 		}
 
 	}
