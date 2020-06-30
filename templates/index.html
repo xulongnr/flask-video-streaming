@@ -28,39 +28,40 @@
     <img id='imgIv' src='' style="border:1px;width:100%;display:none">
     <hr>
 
-	<h2>Camera Configures
-	<input id='btnCc' type=button value='获取' onclick="onGetCameraConfigs();">
-	<input id='btnCh' type=button value='隐藏' onclick="onHideCameraConfigs();" style='display:none'>
-	</h2>
-	<table>
-	<tr>
-		<td>ISO</td>
-		<td></td>
-		<td><select id='cfgISO' value='' style='width:80px' onChange='onChangeISO()'></select></td>
-		<td></td>
-		<td id='stISO'></td>
-	</tr>
-	<tr>
-		<td>快门</td>
-		<td></td>
-		<td><select id='cfgShs' value='' style='width:80px' onChange='onChangeShs()'></select></td>
-		<td></td>
-		<td id='stShs'></td>
-	</tr>
-	<tr>
-		<td>光圈</td>
-		<td></td>
-		<td><select id='cfgApt' value='' style='width:80px' onChange='onChangeApt()'></select></td>
-		<td></td>
-		<td id='stApt'></td>
-	</tr>
-	</table>
-	<textarea id='taCfg' rows='70' readonly style='width:70%;display:none;margin-top:10px'></textarea>
+    <h2>Camera Configures
+    <input id='btnCc' type=button value='获取' onclick="onGetCameraConfigs();">
+    <input id='btnCh' type=button value='隐藏' onclick="onHideCameraConfigs();" style='display:none'>
+    </h2>
+
+    <table>
+    <tr>
+        <td>ISO</td>
+        <td></td>
+        <td><select id='cfgISO' value='' style='width:80px' onChange='onChangeISO()'></select></td>
+        <td></td>
+        <td id='stISO'></td>
+    </tr>
+    <tr>
+        <td>快门</td>
+        <td></td>
+        <td><select id='cfgShs' value='' style='width:80px' onChange='onChangeShs()'></select></td>
+        <td></td>
+        <td id='stShs'></td>
+    </tr>
+    <tr>
+        <td>光圈</td>
+        <td></td>
+        <td><select id='cfgApt' value='' style='width:80px' onChange='onChangeApt()'></select></td>
+        <td></td>
+        <td id='stApt'></td>
+    </tr>
+    </table>
+    <textarea id='taCfg' rows='70' readonly style='width:70%;display:none;margin-top:10px'></textarea>
   </body>
 
   <script type="text/javascript" src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
   <script type="text/javascript">
-	
+
 	var bLvOn = false;
 	var bPvOn = false;
 	var bIvOn = false;
@@ -170,46 +171,46 @@
 
 	function onChangeApt() {
 		value = $(cfgApt).val();
-        if ('' != value) {
-            $.ajax({
-                url: urlCfg,
-                type: 'PUT',
-                contentType: 'application/json',
-                data: JSON.stringify({name: 'aperture', value: value}),
-                success: function(data, status) {
-                    //console.debug(status);
-                    //console.debug(data);
-                    $(stApt).empty();
-                    $(stApt).append(status+', ');
-                    $(stApt).append(JSON.stringify(data));
-                }
-            });
-        }
+		if ('' != value) {
+			$.ajax({
+				url: urlCfg,
+				type: 'PUT',
+				contentType: 'application/json',
+				data: JSON.stringify({name: 'aperture', value: value}),
+				success: function(data, status) {
+					//console.debug(status);
+					//console.debug(data);
+					$(stApt).empty();
+					$(stApt).append(status+', ');
+					$(stApt).append(JSON.stringify(data));
+				}
+			});
+		}
 	}
 
 	function onChangeShs() {
 		value = $(cfgShs).val();
-        if ('' != value) {
-            $.ajax({
-                url: urlCfg,
-                type: 'PUT',
-                contentType: 'application/json',
-                data: JSON.stringify({name: 'shutterspeed', value: value}),
-                success: function(data, status) {
-                    //console.debug(status);
-                    //console.debug(data);
-                    $(stShs).empty();
-                    $(stShs).append(status+', ');
-                    $(stShs).append(JSON.stringify(data));
-                }
-            });
-        }
+		if ('' != value) {
+			$.ajax({
+				url: urlCfg,
+				type: 'PUT',
+				contentType: 'application/json',
+				data: JSON.stringify({name: 'shutterspeed', value: value}),
+				success: function(data, status) {
+					//console.debug(status);
+					//console.debug(data);
+					$(stShs).empty();
+					$(stShs).append(status+', ');
+					$(stShs).append(JSON.stringify(data));
+				}
+			});
+		}
 	}
 
-    function onHideExif() {
-        $(taIv).hide();
-        $(btnEh).hide();
-    }
+	function onHideExif() {
+		$(taIv).hide();
+		$(btnEh).hide();
+	}
 	function onGetExif() {
 		//$(taIv).hide();
 		$(taIv).val('');
@@ -218,15 +219,15 @@
 			//console.debug(data);
 			$(taIv).val(JSON.stringify(data,null,2));
 			$(taIv).show();
-            $(btnEh).show();
+			$(btnEh).show();
 			//sleep(1000);
 			//$(btnIv).attr('value', '刷新');
 		});
 	}
-    function updateDelay() {
-        //sleep(1000);
-        $(btnIv).attr('value', '刷新');
-    }
+	function updateDelay() {
+		//sleep(1000);
+		$(btnIv).attr('value', '刷新');
+	}
 	function onSwitchImage() {
 		if (!bIvOn) {
 			bIvOn = true;
@@ -234,7 +235,7 @@
 			bLvOn = false;
 			$(imgPv).css({display: 'none'});
 			$(imgIv).css({display: 'block'});
-            $(btnEi).removeAttr('disabled');
+			$(btnEi).removeAttr('disabled');
 			$(imgIv).attr('src', urlIv);
 			$(imgPv).attr('src', '');
 			$(btnPv).attr('value', '开启');
@@ -244,7 +245,7 @@
 			// refresh
 			$(imgIv).attr('src', $(imgIv).attr('src').split('?')[0]+'?'+Math.random());
 			$(btnIv).attr('value', '刷新中...');
-            $(taIv).hide();
+			$(taIv).hide();
 			setTimeout('updateDelay()', 2000);
 		}
 
@@ -263,13 +264,13 @@
 			$(imgLv).attr('src', urlLv);
 			$(btnPv).attr('disabled', 'disabled');
 			$(btnIv).attr('disabled', 'disabled');
-            $(btnEi).attr('disabled', 'disabled');
+			$(btnEi).attr('disabled', 'disabled');
 			$(btnCc).attr('disabled', 'disabled');
 			$(btnPv).attr('value', '开启');
 			$(btnIv).attr('value', '开启');
 			$(btnLv).attr('value', '关闭');
-            $(taIv).hide();
-            $(btnEh).hide();
+			$(taIv).hide();
+			$(btnEh).hide();
 		} else {
 			bLvOn = false;
 			$(imgLv).attr('src', '');
@@ -291,7 +292,7 @@
 				$(btnIv).removeAttr('disabled');
 				$(btnCc).removeAttr('disabled');
 			}
-   		})
+		})
 	}
 
   </script>
