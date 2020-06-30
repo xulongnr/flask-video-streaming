@@ -298,4 +298,5 @@ if __name__ == '__main__':
     SWAGGER_URL='/api/docs'
     swaggerui_blueprint = get_swaggerui_blueprint('/api/docs', '/api/spec', config={'app_name': "Flask Author DB"})
     app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL) 
-    app.run(host='0.0.0.0', threaded=True, debug=True)
+    #app.run(host='0.0.0.0', threaded=True, debug=True)
+    app.run(host='0.0.0.0', debug=True)

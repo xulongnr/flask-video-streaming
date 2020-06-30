@@ -4,7 +4,7 @@
   </head>
   <body>
     <h2>Live View
-    <input disabled='1' id='btnLv' type=button value='开启' onclick="onSwitchLiveview();" title='关闭需要等待3秒钟'>
+    <input disabled='1' id='btnLv' type=button value='开启' onclick="onSwitchLiveview();" title='关闭需要等待10秒钟'>
     </h2>
     <!-- <img id='imgLv' src="{{ url_for('live_view') }}" style="border:1px;width:528px;height:352px"> -->
     <img id='imgLv' src='' style="border:1px;width:528px;height:352px;display:none">   
@@ -29,7 +29,8 @@
     <hr>
 
 	<h2>Camera Configures
-	<input id='btnIv' type=button value='获取' onclick="onGetCameraConfigs();">
+	<input id='btnCc' type=button value='获取' onclick="onGetCameraConfigs();">
+	<input id='btnCh' type=button value='隐藏' onclick="onHideCameraConfigs();" style='display:none'>
 	</h2>
 	<table>
 	<tr>
@@ -77,15 +78,6 @@
 	    while (new Date().getTime() < startTime) {}
 	};
 
-	function closeLiveView() {
-		$.ajax({
-			url: urlLv,
-			type: "DELETE",
-			success: function(result) {
-			}
-   		})
-	}
-
 	function onSwitchPreview() {
 		
 		if (!bPvOn) {
@@ -109,6 +101,10 @@
 		
 	}
 
+	function onHideCameraConfigs() {
+		$(taCfg).hide();
+		$(btnCh).hide();
+	}
 	function onGetCameraConfigs() {
 		$(taCfg).val('');
 		$.get(urlCfgs, function(data, status){
@@ -148,6 +144,7 @@
 						});
 					}
 				});
+				$(btnCh).show();
 			}
 		});
 	}
@@ -267,6 +264,7 @@
 			$(btnPv).attr('disabled', 'disabled');
 			$(btnIv).attr('disabled', 'disabled');
             $(btnEi).attr('disabled', 'disabled');
+			$(btnCc).attr('disabled', 'disabled');
 			$(btnPv).attr('value', '开启');
 			$(btnIv).attr('value', '开启');
 			$(btnLv).attr('value', '关闭');
@@ -274,14 +272,26 @@
             $(btnEh).hide();
 		} else {
 			bLvOn = false;
-			$(imgLv).css({display: 'none'});
 			$(imgLv).attr('src', '');
-			$(btnPv).removeAttr('disabled');
-			$(btnIv).removeAttr('disabled');
-			$(btnLv).attr('value', '开启');
-			sleep(10000);
-			closeLiveView();
+			$(btnLv).attr('value', '关闭中...请耐心等待10秒钟');
+			$(btnLv).attr('disabled', '1');
+			setTimeout('closeLiveView()', 10000);
 		}
+	}
+	function closeLiveView() {
+		$.ajax({
+			url: urlLv,
+			type: "DELETE",
+			success: function(result) {
+			
+				$(btnLv).removeAttr('disabled');
+				$(btnLv).attr('value', '开启');			
+				$(imgLv).css({display: 'none'});
+				$(btnPv).removeAttr('disabled');
+				$(btnIv).removeAttr('disabled');
+				$(btnCc).removeAttr('disabled');
+			}
+   		})
 	}
 
   </script>
