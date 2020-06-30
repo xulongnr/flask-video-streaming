@@ -33,25 +33,25 @@
     <input id='btnCh' type=button value='隐藏' onclick="onHideCameraConfigs();" style='display:none'>
     </h2>
 
-    <table>
+    <table id='tableConfigs' style='font-size: small'>
     <tr>
         <td>ISO</td>
         <td></td>
-        <td><select id='cfgISO' value='' style='width:80px' onChange='onChangeISO()'></select></td>
+        <td><select id='cfgISO' style='width:80px' onChange='onChangeISO()'></select></td>
         <td></td>
         <td id='stISO'></td>
     </tr>
     <tr>
         <td>快门</td>
         <td></td>
-        <td><select id='cfgShs' value='' style='width:80px' onChange='onChangeShs()'></select></td>
+        <td><select id='cfgShs' style='width:80px' onChange='onChangeShs()'></select></td>
         <td></td>
         <td id='stShs'></td>
     </tr>
     <tr>
         <td>光圈</td>
         <td></td>
-        <td><select id='cfgApt' value='' style='width:80px' onChange='onChangeApt()'></select></td>
+        <td><select id='cfgApt' style='width:80px' onChange='onChangeApt()'></select></td>
         <td></td>
         <td id='stApt'></td>
     </tr>
@@ -115,37 +115,88 @@
 			$(stApt).empty();
 			$(stShs).empty();
 			config = data;
-			if (config != null) {
-				console.assert(config[3].name === 'imgsettings', '不存在imgsettings');
-				console.assert(config[4].name === 'capturesettings', '不存在capturesettings');
-				$.each(config[3].items, function(key, item) {
-					if (item.name == 'iso') {
-						$(cfgISO).empty();
-						$.each(item.choices, function(id, value) {
-							var selected = '';
-							if (id == item.choice_index) selected = ' selected';
-							$("<option value="+value+selected+">"+value+"</option>").appendTo("#cfgISO");
-						});
-					}
-				});
-				$.each(config[4].items, function(key, item) {
-					if (item.name == 'aperture') {
-						$(cfgApt).empty();
-						$.each(item.choices, function(id, value) {
-							var selected = '';
-							if (id == item.choice_index) selected = ' selected';
-							$("<option value="+value+selected+">"+value+"</option>").appendTo("#cfgApt");
-						});
-					} else if (item.name == 'shutterspeed') {
-						$(cfgShs).empty();
-						$.each(item.choices, function(id, value) {
-							var selected = '';
-							if (id == item.choice_index) selected = ' selected';
-							$("<option value="+value+selected+">"+value+"</option>").appendTo("#cfgShs");
-						});
-					}
-				});
-				$(btnCh).show();
+			if (null == config) return;
+			
+			console.assert(config[3].name === 'imgsettings', '不存在imgsettings');
+			console.assert(config[4].name === 'capturesettings', '不存在capturesettings');
+			$.each(config[3].items, function(key, item) {
+				if (item.name == 'iso') {
+					$(cfgISO).empty();
+					$.each(item.choices, function(id, value) {
+						var selected = '';
+						if (id == item.choice_index) selected = ' selected';
+						$("<option value="+value+selected+">"+value+"</option>").appendTo("#cfgISO");
+					});
+				}
+			});
+			$.each(config[4].items, function(key, item) {
+				if (item.name == 'aperture') {
+					$(cfgApt).empty();
+					$.each(item.choices, function(id, value) {
+						var selected = '';
+						if (id == item.choice_index) selected = ' selected';
+						$("<option value="+value+selected+">"+value+"</option>").appendTo("#cfgApt");
+					});
+				} else if (item.name == 'shutterspeed') {
+					$(cfgShs).empty();
+					$.each(item.choices, function(id, value) {
+						var selected = '';
+						if (id == item.choice_index) selected = ' selected';
+						$("<option value="+value+selected+">"+value+"</option>").appendTo("#cfgShs");
+					});
+				}
+			});
+			initConfigTable(config);
+			$(btnCh).show();
+			
+		});
+	}
+
+	function initConfigTable(config) {
+		filters = ['iso', 'shutterspeed', 'aperture', 'aeb', 'whitebalance', 'autoexposuremode', 'meteringmode', 'picturestyle', 'imageformat', 'aspectratio'];
+		desc_cn = ['ISO', '快门', '光圈', '曝光补偿', '白平衡', '曝光模式', '测光模式', '图片风格', '保存格式', '横竖比'];
+		_table = $('table#tableConfigs');
+		tr_tmpl = "<tr style='font-size: small'><td/><td/>\
+		<td><select name='' style='width:120px' onChange='onChangeSelect(this)'/></td>\
+		<td/><td/></tr>";
+		$(_table).find('tr').remove();
+
+		$.each(config, (k0, v0) => {
+			$.each(v0.items, (k1, v1) => {
+				index = $.inArray(v1.name, filters);
+				if (-1 != index) {
+					$(tr_tmpl).appendTo($(_table));
+					_tr = $(_table).find('tr').slice(-1);
+					_td = $(_tr).find('td')[0]
+					$(_td).append(desc_cn[index]);
+					_td = $(_tr).find('td')[1]
+					$(_td).append(v1.desc);
+					_td = $(_tr).find('td')[2];
+					_sel = $(_td).children('select')[0];
+					$(_sel).attr('name', v1.name);
+					$.each(v1.choices, (k2, v2) => {
+						var selected = '';
+						if (k2 == v1.choice_index) selected = ' selected';
+						$(_sel).append('<option value='+v2+selected+'>'+v2+'</option>');
+					});
+				}
+			});
+		});
+	}
+
+	function onChangeSelect(obj) {
+		name = obj.name;
+		value = obj.options[obj.options.selectedIndex].value;
+		console.debug('name:', name, 'value:', value);
+		if ('' == value || '' == name) return;
+		$.ajax({
+			url: urlCfg,
+			type: 'PUT',
+			contentType: 'application/json',
+			data: JSON.stringify({name: name, value: value}),
+			success: (data, status) => {
+				_td = $(obj).parent().parent().children('td')[4]
+				$(_td).empty().append(status+', ').append(JSON.stringify(data));
 			}
 		});
 	}
