@@ -101,11 +101,16 @@ def get_configs():
 
                 elif item.get_type() == gp.GP_WIDGET_RANGE:
                     assert item.count_children() == 0
-                    lo, hi, inc = item.get_value()
-                    #print '  >', lo, hi, inc
-                    item_data['lo'] = lo
-                    item_data['hi'] = hi
-                    item_data['inc'] = inc
+                    try:
+                        lo, hi, inc = item.get_value()
+                        #print '  >', lo, hi, inc
+                        item_data['lo'] = lo
+                        item_data['hi'] = hi
+                        item_data['inc'] = inc
+                    except Exception as e:
+                        print 'Exception on getting value: ', e
+                    else:
+                        value = item.get_value()
 
                 elif item.get_type() == gp.GP_WIDGET_TOGGLE:
                     assert item.count_children() == 0
