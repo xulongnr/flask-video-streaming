@@ -24,7 +24,7 @@ def spec():
     swag = swagger(app, prefix='/api')
     swag['info']['version'] = "1.0"
     swag['info']['title'] = "Flask Author DB"
-    return jsonify(swag) 
+    return jsonify(swag)
 
 
 def gen(camera):
@@ -49,7 +49,7 @@ def live_view_del():
 @app.route('/api/live_view')
 def live_view():
     """Video streaming route. Put this in the src attribute of an img tag."""
-    
+
     # import camera driver
     if os.environ.get('CAMERA'):
         Camera = import_module('camera_' + os.environ['CAMERA']).Camera
@@ -142,7 +142,7 @@ def get_configs():
                         item_data['date'] = datetime.fromtimestamp(value).strftime("%Y-%m-%d %H:%M:%S")
 
                 item_data['value'] = value
-                
+
                 if item.get_type() in [ gp.GP_WIDGET_TEXT,
                                         gp.GP_WIDGET_RANGE,
                                         gp.GP_WIDGET_TOGGLE,
@@ -153,7 +153,7 @@ def get_configs():
         data.append(child_data)
 
     camera.exit()
-    return Response(json.dumps(data), mimetype='application/json')
+    return Response(json.dumps(data, sort_keys=True), mimetype='application/json')
 
 
 @app.route('/api/config')
@@ -201,8 +201,8 @@ def _set_config(name, value):
         item = config.get_child_by_name(str(name))
         if not item:
             abort(400)
-   
-        # set 
+
+        # set
         if type(value) is unicode:
             item.set_value(str(value))
         else:
@@ -230,7 +230,7 @@ def get_summary():
     summary = camera.get_summary()
     camera.exit()
     return Response(str(summary))
-    
+
 
 import piggyphoto
 
@@ -262,7 +262,7 @@ def capture_image(filename='capture_image.jpg'):
 @app.route('/api/exif_image')
 def exif_preview(filename='capture_image.jpg'):
     data = _get_exif(filename)
-    return Response(json.dumps(data), mimetype='application/json')
+    return Response(json.dumps(data, sort_keys=True), mimetype='application/json')
 
 
 def _get_exif(path):
@@ -271,30 +271,18 @@ def _get_exif(path):
         exif = exifread.process_file(pf)
         exif_info = {}
         prefixes = ['EXIF', 'MakerNote', 'Image', 'Thumbnail', 'Interoperability', 'GPS']
-        #for prefix in prefixes:
+        # for prefix in prefixes:
         #    exif_info[prefix] = []
         #    for key in exif.keys():
         #        if key.startswith(prefix):
         #            exif_info[prefix].append(key)
-        #print exif_info    
-       
-        for prefix in prefixes:
-            exif_json[prefix] = {} 
+        # print exif_info
 
-            #for key in exif.keys():
-            for key in ('Image Make', 'Image Model', 'Image DateTime', 'Image Orientation',
-                        'Image Copyright', 'Image Artist',
-                        'EXIF DateTimeOriginal', 'EXIF LensModel', 'EXIF Flash', 'EXIF ColorSpace',
-                        'EXIF ExposureProgram', 'EXIF ExposureTime', 'EXIF ShutterSpeedValue',
-                        'EXIF ApertureValue', 'EXIF FNumber', 'EXIF ISOSpeedRatings',
-                        'EXIF FocalLength', 'EXIF WhiteBalance', 'EXIF SceneCaptureType', 
-                        'MakerNote AFAreaMode', 'MakerNote LongExposureNoiseReduction2', 'MakerNote SlowShutter',
-                        'MakerNote AFPointUsed', 'MakerNote Contrast', 'MakerNote RawJpgSize'):
-                if key in exif:
-                    print key, ':', exif[key]
-                    #exif_json[key] = str(exif[key])
-                    if key.startswith(prefix):
-                        exif_json[prefix][key] = str(exif[key])
+        for prefix in prefixes:
+            exif_json[prefix] = {}
+            for key in exif.keys():
+                if key.startswith(prefix):
+                    exif_json[prefix][key] = str(exif[key])
 
     return exif_json
 
@@ -302,6 +290,6 @@ def _get_exif(path):
 if __name__ == '__main__':
     SWAGGER_URL='/api/docs'
     swaggerui_blueprint = get_swaggerui_blueprint('/api/docs', '/api/spec', config={'app_name': "Flask Author DB"})
-    app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL) 
+    app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
     #app.run(host='0.0.0.0', threaded=True, debug=True)
     app.run(host='0.0.0.0', debug=True)

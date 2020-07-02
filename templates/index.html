@@ -7,7 +7,7 @@
     <input disabled='1' id='btnLv' type=button value='开启' onclick="onSwitchLiveview();" title='关闭需要等待10秒钟'>
     </h2>
     <!-- <img id='imgLv' src="{{ url_for('live_view') }}" style="border:1px;width:528px;height:352px"> -->
-    <img id='imgLv' src='' style="border:1px;width:528px;height:352px;display:none">   
+    <img id='imgLv' src='' style="border:1px;width:528px;height:352px;display:none">
     <hr>
 
     <h2>Preview Capture
@@ -80,7 +80,7 @@
 	};
 
 	function onSwitchPreview() {
-		
+
 		if (!bPvOn) {
 			bPvOn = true;
 			bIvOn = false;
@@ -94,12 +94,12 @@
             $(btnEi).attr('disabled', 'disabled');
             $(taIv).hide();
             $(btnEh).hide();
-			
+
 		} else {
 			// refresh
 			$(imgPv).attr('src', $(imgPv).attr('src').split('?')[0]+'?'+Math.random());
 		}
-		
+
 	}
 
 	function onHideCameraConfigs() {
@@ -111,44 +111,12 @@
 		$.get(urlCfgs, function(data, status){
 			$(taCfg).val(JSON.stringify(data,null,2));
 			$(taCfg).show();
-			$(stISO).empty();
-			$(stApt).empty();
-			$(stShs).empty();
 			config = data;
 			if (null == config) return;
-			
-			console.assert(config[3].name === 'imgsettings', '不存在imgsettings');
-			console.assert(config[4].name === 'capturesettings', '不存在capturesettings');
-			$.each(config[3].items, function(key, item) {
-				if (item.name == 'iso') {
-					$(cfgISO).empty();
-					$.each(item.choices, function(id, value) {
-						var selected = '';
-						if (id == item.choice_index) selected = ' selected';
-						$("<option value="+value+selected+">"+value+"</option>").appendTo("#cfgISO");
-					});
-				}
-			});
-			$.each(config[4].items, function(key, item) {
-				if (item.name == 'aperture') {
-					$(cfgApt).empty();
-					$.each(item.choices, function(id, value) {
-						var selected = '';
-						if (id == item.choice_index) selected = ' selected';
-						$("<option value="+value+selected+">"+value+"</option>").appendTo("#cfgApt");
-					});
-				} else if (item.name == 'shutterspeed') {
-					$(cfgShs).empty();
-					$.each(item.choices, function(id, value) {
-						var selected = '';
-						if (id == item.choice_index) selected = ' selected';
-						$("<option value="+value+selected+">"+value+"</option>").appendTo("#cfgShs");
-					});
-				}
-			});
+
 			initConfigTable(config);
 			$(btnCh).show();
-			
+
 		});
 	}
 
@@ -297,6 +265,7 @@
 			$(imgIv).attr('src', $(imgIv).attr('src').split('?')[0]+'?'+Math.random());
 			$(btnIv).attr('value', '刷新中...');
 			$(taIv).hide();
+            $(btnEh).hide();
 			setTimeout('updateDelay()', 2000);
 		}
 
@@ -335,9 +304,9 @@
 			url: urlLv,
 			type: "DELETE",
 			success: function(result) {
-			
+
 				$(btnLv).removeAttr('disabled');
-				$(btnLv).attr('value', '开启');			
+				$(btnLv).attr('value', '开启');
 				$(imgLv).css({display: 'none'});
 				$(btnPv).removeAttr('disabled');
 				$(btnIv).removeAttr('disabled');
