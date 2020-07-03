@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from importlib import import_module
+import io
 import os
 import sys
 import json
@@ -257,6 +258,31 @@ def capture_image(filename='capture_image.jpg'):
     with open(filename, "rb") as f:
         image = f.read()
     return Response(image, mimetype='image/jpeg')
+
+
+@app.route('/api/capture_image2')
+def capture_image2(filename='capture_image.jpg'):
+    camera = gp.Camera()
+    camera.init()
+    path = camera.capture(gp.GP_CAPTURE_IMAGE)
+    print 'capture', path.folder + path.name
+    camera_file = camera.file_get(path.folder, path.name, gp.GP_FILE_TYPE_NORMAL)
+    camera_file.save(filename)
+    camera.file_delete(path.folder, path.name)
+    camera.exit()
+    with open(filename, "rb") as f:
+        image = f.read()
+    return Response(image, mimetype='image/jpeg')
+
+
+@app.route('/api/capture_preview2')
+def capture_preview2(filename='capture_preview.jpg'):
+    camera = gp.Camera()
+    camera.init()
+    camera_file = gp.check_result(gp.gp_camera_capture_preview(camera))
+    file_data = gp.check_result(gp.gp_file_get_data_and_size(camera_file))
+    camera.exit()
+    return Response(io.BytesIO(file_data), mimetype='image/jpeg')
 
 
 @app.route('/api/exif_image')
