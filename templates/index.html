@@ -3,8 +3,10 @@
     <title>GPhoto Demo</title>
   </head>
   <body>
+    <h1 onClick='onEnableLV()'>GP Demo</h1>
+
     <h2>Live View
-    <input  id='btnLv' type=button value='开启' onclick="onSwitchLiveview();" title='关闭需要等待10秒钟'>
+    <input disabled='1' id='btnLv' type=button value='开启' onclick="onSwitchLiveview();" title='关闭需要等待10秒钟'>
     </h2>
     <!-- <img id='imgLv' src="{{ url_for('live_view') }}" style="border:1px;width:528px;height:352px"> -->
     <img id='imgLv' src='' style="border:1px;width:528px;height:352px;display:none">
@@ -65,6 +67,7 @@
 	var bLvOn = false;
 	var bPvOn = false;
 	var bIvOn = false;
+    var bLvDs = true;
 	var urlPrefix = window.location.protocol + '//' +window.location.host + '/api';
 	var urlLv = urlPrefix + '/live_view?';
 	var urlPv = urlPrefix + '/capture_preview2?';
@@ -101,6 +104,14 @@
 		}
 
 	}
+
+    function onEnableLV() {
+        bLvDs = !bLvDs;
+        if (!bLvDs)
+            $(btnLv).removeAttr('disabled');
+        else
+            $(btnLv).attr('disabled', '1');
+    }
 
 	function onHideCameraConfigs() {
 		$(taCfg).hide();

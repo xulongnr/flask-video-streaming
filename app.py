@@ -265,7 +265,6 @@ def capture_image2(filename='capture_image.jpg'):
     camera = gp.Camera()
     camera.init()
     path = camera.capture(gp.GP_CAPTURE_IMAGE)
-    print 'capture', path.folder + path.name
     camera_file = camera.file_get(path.folder, path.name, gp.GP_FILE_TYPE_NORMAL)
     camera_file.save(filename)
     camera.file_delete(path.folder, path.name)
