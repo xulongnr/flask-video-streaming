@@ -3,6 +3,7 @@ from importlib import import_module
 import io
 import os
 import sys
+import time
 import json
 import base64
 from datetime import datetime
@@ -286,6 +287,7 @@ def capture_image(filename='capture_image.jpg'):
 
 @app.route('/api/capture_image_and_download')
 def capture_image_and_download(saved_path='download'):
+    image_suffix = '.jpg'
     saved_path_param = request.args.get('saved_path')
     if saved_path_param:
         saved_path = saved_path_param
@@ -295,7 +297,8 @@ def capture_image_and_download(saved_path='download'):
     with configured_camera() as camera:
         file_path = camera.capture(gp.GP_CAPTURE_IMAGE)
         camera_file = camera.file_get(file_path.folder, file_path.name, gp.GP_FILE_TYPE_NORMAL)
-        saved_file_path = saved_path + '/' + file_path.name
+        filename = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + image_suffix
+        saved_file_path = saved_path + '/' + filename
         camera_file.save(saved_file_path)
         camera.file_delete(file_path.folder, file_path.name)
         return Response(json.dumps({"filepath": saved_file_path}), mimetype='application/json')
