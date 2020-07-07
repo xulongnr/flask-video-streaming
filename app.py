@@ -9,6 +9,7 @@ from datetime import datetime
 from flask import Flask, render_template, Response, jsonify, Blueprint, request, redirect, abort
 from flask_swagger import swagger
 from flask_swagger_ui import get_swaggerui_blueprint
+from PIL import Image
 
 
 app = Flask(__name__)
@@ -233,34 +234,7 @@ def get_summary():
     return Response(str(summary))
 
 
-import piggyphoto
-
-@app.route('/api/configs')
-def list_config():
-    cam = piggyphoto.camera()
-    config = cam.list_config()
-    return Response(json.dumps({'config': config}), mimetype='application/json')
-
-
-@app.route('/api/capture_preview')
-def capture_preview(filename='capture_preview.jpg'):
-    cam = piggyphoto.camera()
-    cam.capture_preview(filename)
-    with open(filename, "rb") as f:
-        image = f.read()
-    return Response(image, mimetype='image/jpeg')
-
-
 @app.route('/api/capture_image')
-def capture_image(filename='capture_image.jpg'):
-    cam = piggyphoto.camera()
-    cam.capture_image(filename)
-    with open(filename, "rb") as f:
-        image = f.read()
-    return Response(image, mimetype='image/jpeg')
-
-
-@app.route('/api/capture_image2')
 def capture_image2(filename='capture_image.jpg'):
     camera = gp.Camera()
     camera.init()
@@ -269,12 +243,15 @@ def capture_image2(filename='capture_image.jpg'):
     camera_file.save(filename)
     camera.file_delete(path.folder, path.name)
     camera.exit()
-    with open(filename, "rb") as f:
-        image = f.read()
-    return Response(image, mimetype='image/jpeg')
+    with Image.open(filename) as image:
+        quarter_size = (image.size[0]/4, image.size[1]/4)
+        image.thumbnail(quarter_size, Image.ANTIALIAS)
+        with io.BytesIO() as output:
+            image.save(output, 'jpeg')
+            return Response(output.getvalue(), mimetype='image/jpeg')
 
 
-@app.route('/api/capture_preview2')
+@app.route('/api/capture_preview')
 def capture_preview2(filename='capture_preview.jpg'):
     camera = gp.Camera()
     camera.init()
@@ -310,6 +287,33 @@ def _get_exif(path):
                     exif_json[prefix][key] = str(exif[key])
 
     return exif_json
+
+
+import piggyphoto
+
+@app.route('/api/configs0')
+def list_config():
+    cam = piggyphoto.camera()
+    config = cam.list_config()
+    return Response(json.dumps({'config': config}), mimetype='application/json')
+
+
+@app.route('/api/capture_preview0')
+def capture_preview(filename='capture_preview.jpg'):
+    cam = piggyphoto.camera()
+    cam.capture_preview(filename)
+    with open(filename, "rb") as f:
+        image = f.read()
+    return Response(image, mimetype='image/jpeg')
+
+
+@app.route('/api/capture_image0')
+def capture_image(filename='capture_image.jpg'):
+    cam = piggyphoto.camera()
+    cam.capture_image(filename)
+    with open(filename, "rb") as f:
+        image = f.read()
+    return Response(image, mimetype='image/jpeg')
 
 
 if __name__ == '__main__':
