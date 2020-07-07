@@ -30,6 +30,19 @@
     <img id='imgIv' src='' style="border:1px;width:100%;display:none">
     <hr>
 
+    <h2>Time Lapse
+    <input id='btnTlStart' type=button value='开始' onclick='onStartTimeLapse()'>
+    <input id='btnTlStop'  type=button value='停止' onclick='onStopTimeLapse()' disabled="1">
+    <label style="font-size: small; margin-left: 20px">间隔(秒)：</label>
+    <input id='txtIntVal' type="text" name="interval" value="60" style="width: 50px">
+    <label style="font-size: small; margin-left: 20px">等待(秒)：</label>
+    <label style="font-size: small" id='txtToWait' />
+    </h2>
+    <table id='tableTimeLapses' style='font-size: small'>
+
+    </table>
+    <hr>
+
     <h2>Camera Configures
     <input id='btnCc' type=button value='获取' onclick="onGetCameraConfigs();">
     <input id='btnCh' type=button value='隐藏' onclick="onHideCameraConfigs();" style='display:none'>
@@ -72,6 +85,8 @@
 	var urlLv = urlPrefix + '/live_view?';
 	var urlPv = urlPrefix + '/capture_preview?';
 	var urlIv = urlPrefix + '/capture_image?';
+    var urlTl = urlPrefix + '/capture_image_and_download';
+    var urlTb = urlPrefix + '/thumbnail/';
     var urlExif = urlPrefix + '/exif_image';
 	var urlCfgs = urlPrefix + '/configs';
 	var urlCfg = urlPrefix + '/config';
@@ -135,7 +150,7 @@
 		filters = ['iso', 'shutterspeed', 'aperture', 'exposurecompensation', 'whitebalance', 'autoexposuremode', 'meteringmode', 'picturestyle', 'imageformat', 'aspectratio'];
 		desc_cn = ['ISO', '快门', '光圈', '曝光补偿', '白平衡', '曝光模式', '测光模式', '图片风格', '保存格式', '横竖比'];
 		_table = $('table#tableConfigs');
-		tr_tmpl = "<tr style='font-size: small'><td/><td/>\
+		tr_tmpl = "<tr><td/><td/>\
 		<td><select name='' style='width:120px' onChange='onChangeSelect(this)'/></td>\
 		<td/><td/></tr>";
 		$(_table).find('tr').remove();
@@ -325,6 +340,70 @@
 			}
 		})
 	}
+
+    count = 0;
+    left = 0;
+    timer = null;
+    function countDown() {
+        if (left > 0) {
+            left = left - 1;
+            $(txtToWait).html(left);
+        } else {
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
+            count = count + 1;
+            left = $(txtIntVal).val();
+            $(txtToWait).html(left);
+            timer = setInterval('countDown()', 1000);
+            $.ajax({
+                url: urlTl,
+                success: (result) => {
+                    console.log(result);
+                    appendTimeLapseTable(result.filepath);
+                }
+            })
+        }
+    }
+
+    function appendTimeLapseTable(image_path) {
+        _table = $('table#tableTimeLapses');
+        url = urlTb + window.btoa(image_path);
+        var num_in_row = 7;
+        if (count % num_in_row == 1)
+            $(_table).append('<tr>');
+        var now = new Date();
+        now_str = now.getMonth() + '-' + now.getDate() + ' ' +
+            now.getHours() + ':' + now.getMinutes() + ':' + now.getSeconds() +
+            ' (' + count + ')';
+        $(_table).append('<td align=center><img style="width:150px;height:100px" src="'+
+                         url + '"><br>' + now_str + '</td>');
+        if (count % num_in_row == num_in_row)
+            $(_table).append('</tr>');
+    }
+
+    function onStartTimeLapse() {
+        _table = $('table#tableTimeLapses');
+        $(_table).empty();
+
+        left = $(txtIntVal).val();
+        $(txtIntVal).attr('disabled', '1');
+        $(txtToWait).html(left);
+        $(btnTlStop).removeAttr('disabled');
+        $(btnTlStart).attr('disabled', '1');
+        count = 0;
+        timer = setInterval('countDown()', 1000);
+    }
+
+    function onStopTimeLapse() {
+        clearInterval(timer);
+        timer = null;
+        $(txtIntVal).removeAttr('disabled');
+        $(txtToWait).html('');
+        $(btnTlStart).removeAttr('disabled');
+        $(btnTlStop).attr('disabled', '1');
+    }
 
   </script>
 </html>

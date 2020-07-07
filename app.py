@@ -4,16 +4,21 @@ import io
 import os
 import sys
 import json
-import datetime
+import base64
+from datetime import datetime
 import exifread
 from flask import Flask, render_template, Response, jsonify, request, abort
 from flask_swagger import swagger
 from flask_swagger_ui import get_swaggerui_blueprint
 from PIL import Image
+from contextlib import contextmanager
+
+import gphoto2 as gp
 
 
 app = Flask(__name__)
 _camera = None
+
 
 @app.route('/')
 def index():
@@ -27,6 +32,42 @@ def spec():
     swag['info']['version'] = "1.0"
     swag['info']['title'] = "Flask Author DB"
     return jsonify(swag)
+
+
+@contextmanager
+def configured_camera():
+    camera = gp.Camera()
+    camera.init()
+    try:
+        cfg = camera.get_config()
+        capturetarget_cfg = cfg.get_child_by_name('capturetarget')
+        capturetarget = capturetarget_cfg.get_value()
+        # capturetarget_cfg.set_value('Internal RAM')
+        capturetarget_cfg.set_value('Memory card')
+        imageformat_cfg = cfg.get_child_by_name('imageformat')
+        imageformat = imageformat_cfg.get_value()
+        # imageformat_cfg.set_value('Small Fine JPEG')
+        imageformat_cfg.set_value('Large Fine JPEG')
+        camera.set_config(cfg)
+        # use camera
+        yield camera
+    finally:
+        # reset configuration
+        capturetarget_cfg.set_value(capturetarget)
+        imageformat_cfg.set_value(imageformat)
+        camera.set_config(cfg)
+        # free camera
+        camera.exit()
+
+
+def empty_event_queue(camera):
+    while True:
+        type_, data = camera.wait_for_event(10)
+        if type_ == gp.GP_EVENT_TIMEOUT:
+            return
+        if type_ == gp.GP_EVENT_FILE_ADDED:
+            # get a second image if camera is set to raw + jpeg
+            print('Unexpected new file', data.folder + data.name)
 
 
 def gen(camera):
@@ -67,9 +108,6 @@ def live_view():
 
     return Response(gen(_camera),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
-
-
-import gphoto2 as gp
 
 
 @app.route('/api/configs')
@@ -243,11 +281,34 @@ def capture_image(filename='capture_image.jpg'):
     camera_file.save(filename)
     camera.file_delete(path.folder, path.name)
     camera.exit()
-    with Image.open(filename) as image:
-        quarter_size = (image.size[0]/4, image.size[1]/4)
-        image.thumbnail(quarter_size, Image.ANTIALIAS)
+    return get_thumbnail(base64.b64encode(filename))
+
+
+@app.route('/api/capture_image_and_download')
+def capture_image_and_download(saved_path='download'):
+    saved_path_param = request.args.get('saved_path')
+    if saved_path_param:
+        saved_path = saved_path_param
+    if not os.path.exists(saved_path):
+        os.makedirs(saved_path)
+
+    with configured_camera() as camera:
+        file_path = camera.capture(gp.GP_CAPTURE_IMAGE)
+        camera_file = camera.file_get(file_path.folder, file_path.name, gp.GP_FILE_TYPE_NORMAL)
+        saved_file_path = saved_path + '/' + file_path.name
+        camera_file.save(saved_file_path)
+        camera.file_delete(file_path.folder, file_path.name)
+        return Response(json.dumps({"filepath": saved_file_path}), mimetype='application/json')
+
+
+@app.route('/api/thumbnail/<string:image_name>')
+def get_thumbnail(image_name, ratio=0.5):
+    image_name = base64.b64decode(image_name)
+    with Image.open(image_name) as image:
+        thumbnail_size = (image.size[0] * ratio, image.size[1] * ratio)
+        image.thumbnail(thumbnail_size, Image.ANTIALIAS)
         with io.BytesIO() as output:
-            image.save(output, 'JPEG')
+            image.save(output, "JPEG")
             return Response(output.getvalue(), mimetype='image/jpeg')
 
 
@@ -289,6 +350,9 @@ def _get_exif(path):
     return exif_json
 
 
+################
+## piggyphoto ##
+################
 import piggyphoto
 
 @app.route('/api/configs0')
