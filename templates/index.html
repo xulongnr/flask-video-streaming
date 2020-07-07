@@ -312,6 +312,7 @@
 			$(btnIv).attr('disabled', 'disabled');
 			$(btnEi).attr('disabled', 'disabled');
 			$(btnCc).attr('disabled', 'disabled');
+            $(btnTlStart).attr('disabled', 'disabled');
 			$(btnPv).attr('value', '开启');
 			$(btnIv).attr('value', '开启');
 			$(btnLv).attr('value', '关闭');
@@ -337,6 +338,7 @@
 				$(btnPv).removeAttr('disabled');
 				$(btnIv).removeAttr('disabled');
 				$(btnCc).removeAttr('disabled');
+                $(btnTlStart).removeAttr('disabled');
 			}
 		})
 	}
@@ -360,7 +362,6 @@
             $.ajax({
                 url: urlTl,
                 success: (result) => {
-                    console.log(result);
                     appendTimeLapseTable(result.filepath);
                 }
             })
