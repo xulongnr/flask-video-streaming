@@ -4,9 +4,9 @@ import io
 import os
 import sys
 import json
+import datetime
 import exifread
-from datetime import datetime
-from flask import Flask, render_template, Response, jsonify, Blueprint, request, redirect, abort
+from flask import Flask, render_template, Response, jsonify, request, abort
 from flask_swagger import swagger
 from flask_swagger_ui import get_swaggerui_blueprint
 from PIL import Image
@@ -235,7 +235,7 @@ def get_summary():
 
 
 @app.route('/api/capture_image')
-def capture_image2(filename='capture_image.jpg'):
+def capture_image(filename='capture_image.jpg'):
     camera = gp.Camera()
     camera.init()
     path = camera.capture(gp.GP_CAPTURE_IMAGE)
@@ -247,12 +247,12 @@ def capture_image2(filename='capture_image.jpg'):
         quarter_size = (image.size[0]/4, image.size[1]/4)
         image.thumbnail(quarter_size, Image.ANTIALIAS)
         with io.BytesIO() as output:
-            image.save(output, 'jpeg')
+            image.save(output, 'JPEG')
             return Response(output.getvalue(), mimetype='image/jpeg')
 
 
 @app.route('/api/capture_preview')
-def capture_preview2(filename='capture_preview.jpg'):
+def capture_preview(filename='capture_preview.jpg'):
     camera = gp.Camera()
     camera.init()
     camera_file = gp.check_result(gp.gp_camera_capture_preview(camera))
@@ -299,7 +299,7 @@ def list_config():
 
 
 @app.route('/api/capture_preview0')
-def capture_preview(filename='capture_preview.jpg'):
+def capture_preview0(filename='capture_preview.jpg'):
     cam = piggyphoto.camera()
     cam.capture_preview(filename)
     with open(filename, "rb") as f:
@@ -308,7 +308,7 @@ def capture_preview(filename='capture_preview.jpg'):
 
 
 @app.route('/api/capture_image0')
-def capture_image(filename='capture_image.jpg'):
+def capture_image0(filename='capture_image.jpg'):
     cam = piggyphoto.camera()
     cam.capture_image(filename)
     with open(filename, "rb") as f:
