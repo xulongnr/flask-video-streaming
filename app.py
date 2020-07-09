@@ -7,12 +7,12 @@ import time
 import json
 import base64
 from datetime import datetime
+from contextlib import contextmanager
 import exifread
 from flask import Flask, render_template, Response, jsonify, request, abort
 from flask_swagger import swagger
 from flask_swagger_ui import get_swaggerui_blueprint
 from PIL import Image
-from contextlib import contextmanager
 
 import gphoto2 as gp
 
@@ -41,22 +41,22 @@ def configured_camera():
     camera.init()
     try:
         cfg = camera.get_config()
-        capturetarget_cfg = cfg.get_child_by_name('capturetarget')
-        capturetarget = capturetarget_cfg.get_value()
-        # capturetarget_cfg.set_value('Internal RAM')
-        capturetarget_cfg.set_value('Memory card')
-        imageformat_cfg = cfg.get_child_by_name('imageformat')
-        imageformat = imageformat_cfg.get_value()
-        # imageformat_cfg.set_value('Small Fine JPEG')
-        imageformat_cfg.set_value('Large Fine JPEG')
+        #capturetarget_cfg = cfg.get_child_by_name('capturetarget')
+        #capturetarget = capturetarget_cfg.get_value()
+        #capturetarget_cfg.set_value('Internal RAM')
+        #imageformat_cfg = cfg.get_child_by_name('imageformat')
+        #imageformat = imageformat_cfg.get_value()
+        #imageformat_cfg.set_value('Large Fine JPEG')
         camera.set_config(cfg)
+
         # use camera
         yield camera
+
     finally:
         # reset configuration
-        capturetarget_cfg.set_value(capturetarget)
-        imageformat_cfg.set_value(imageformat)
-        camera.set_config(cfg)
+        #capturetarget_cfg.set_value(capturetarget)
+        #imageformat_cfg.set_value(imageformat)
+        #camera.set_config(cfg)
         # free camera
         camera.exit()
 
@@ -296,16 +296,38 @@ def capture_image_and_download(saved_path='download'):
 
     with configured_camera() as camera:
         file_path = camera.capture(gp.GP_CAPTURE_IMAGE)
+        file_info = camera.file_get_info(file_path.folder, file_path.name)
         camera_file = camera.file_get(file_path.folder, file_path.name, gp.GP_FILE_TYPE_NORMAL)
-        filename = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + image_suffix
-        saved_file_path = saved_path + '/' + filename
+        # print 'time1:', time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        # print 'time2:', datetime.fromtimestamp(file_info.file.mtime).isoformat(' ')
+        # print 'size:', file_info.file.size
+        # print 'type:', file_info.file.type
+        # file_name = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + image_suffix
+        file_name = datetime.fromtimestamp(file_info.file.mtime).isoformat(' ') + image_suffix
+        saved_file_path = saved_path + '/' + file_name
         camera_file.save(saved_file_path)
         camera.file_delete(file_path.folder, file_path.name)
         return Response(json.dumps({"filepath": saved_file_path}), mimetype='application/json')
 
 
+@app.route('/api/storage_info')
+def get_available_storage(path='download'):
+    path_param = request.args.get('path')
+    if path_param:
+        path = path_param
+    cmd = "df " + path + " | awk 'NR==2{print $2,$3,$4,$5}'"
+    vals = os.popen(cmd).readlines()[0].strip().split(' ')
+    return Response(json.dumps({"size": vals[0],
+                                "used": vals[1],
+                                "avail": vals[2],
+                                "usedp": vals[3]}),
+                    mimetype='application/json')
+
+
 @app.route('/api/thumbnail/<string:image_name>')
 def get_thumbnail(image_name, ratio=0.5):
+    if request.args.get('ratio'):
+        ratio = float(request.args.get('ratio'))
     image_name = base64.b64decode(image_name)
     with Image.open(image_name) as image:
         thumbnail_size = (image.size[0] * ratio, image.size[1] * ratio)
@@ -313,6 +335,14 @@ def get_thumbnail(image_name, ratio=0.5):
         with io.BytesIO() as output:
             image.save(output, "JPEG")
             return Response(output.getvalue(), mimetype='image/jpeg')
+
+
+@app.route('/api/image/<string:image_name>')
+def get_image(image_name):
+    image_name = base64.b64decode(image_name)
+    with open(image_name, "rb") as f:
+        image = f.read()
+        return Response(image, mimetype='image/jpeg')
 
 
 @app.route('/api/capture_preview')

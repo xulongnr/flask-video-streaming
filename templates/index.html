@@ -89,9 +89,11 @@
 	var urlIv = urlPrefix + '/capture_image?';
     var urlTl = urlPrefix + '/capture_image_and_download';
     var urlTb = urlPrefix + '/thumbnail/';
+    var urlIg = urlPrefix + '/image/';
     var urlExif = urlPrefix + '/exif_image';
 	var urlCfgs = urlPrefix + '/configs';
 	var urlCfg = urlPrefix + '/config';
+    var urlStI = urlPrefix + '/storage_info';
 	var config = null;
 
 	function sleep(time) {
@@ -206,8 +208,6 @@
 				contentType: 'application/json',
 				data: JSON.stringify({name: 'iso', value: value}),
 				success: function(data, status) {
-					//console.debug(status);
-					//console.debug(data);
 					$(stISO).empty();
 					$(stISO).append(status+', ');
 					$(stISO).append(JSON.stringify(data));
@@ -225,8 +225,6 @@
 				contentType: 'application/json',
 				data: JSON.stringify({name: 'aperture', value: value}),
 				success: function(data, status) {
-					//console.debug(status);
-					//console.debug(data);
 					$(stApt).empty();
 					$(stApt).append(status+', ');
 					$(stApt).append(JSON.stringify(data));
@@ -244,8 +242,6 @@
 				contentType: 'application/json',
 				data: JSON.stringify({name: 'shutterspeed', value: value}),
 				success: function(data, status) {
-					//console.debug(status);
-					//console.debug(data);
 					$(stShs).empty();
 					$(stShs).append(status+', ');
 					$(stShs).append(JSON.stringify(data));
@@ -263,12 +259,9 @@
 		$(taIv).val('');
 		$.get(urlExif, function(data, status){
 			console.debug(status);
-			//console.debug(data);
 			$(taIv).val(JSON.stringify(data,null,2));
 			$(taIv).show();
 			$(btnEh).show();
-			//sleep(1000);
-			//$(btnIv).attr('value', '刷新');
 		});
 	}
 	function updateDelay() {
@@ -332,8 +325,7 @@
 		$.ajax({
 			url: urlLv,
 			type: "DELETE",
-			success: function(result) {
-
+			success: (result) => {
 				$(btnLv).removeAttr('disabled');
 				$(btnLv).attr('value', '开启');
 				$(imgLv).css({display: 'none'});
@@ -348,39 +340,73 @@
     count = 0;
     left = 0;
     timer = null;
+    alert_low_storage_size = 100000; // 100M low storage alert
+    function take_a_shot() {
+        $.ajax({
+            url: urlTl,
+            success: (result) => {
+                appendTimeLapseTable(result.filepath, new Date());
+            }
+        });
+    }
+    function take_a_check() {
+        $.ajax({
+            url: urlStI,
+            success: (result) => {
+                if (result.avail < alert_low_storage_size) {
+                    appendAlertCell(result.avail);
+                    onStopTimeLapse();
+                }
+            }
+        });
+    }
+
     function countDown() {
         if (left > 0) {
-            left = left - 1;
+            interval = $(txtIntVal).val();
+            if (left == Math.round(interval/2)) {
+                take_a_check();
+            }
+            left--;
             $(txtToWait).html(left);
         } else {
             if (timer) {
                 clearInterval(timer);
                 timer = null;
             }
-            count = count + 1;
-            left = $(txtIntVal).val();
+            count++;
+            take_a_shot();
+            left = $(txtIntVal).val() - 1;
             $(txtToWait).html(left);
             timer = setInterval('countDown()', 1000);
-            $.ajax({
-                url: urlTl,
-                success: (result) => {
-                    appendTimeLapseTable(result.filepath);
-                }
-            })
         }
     }
 
-    function appendTimeLapseTable(image_path) {
+    function appendAlertCell(remain) {
         _table = $('table#tableTimeLapses');
-        url = urlTb + window.btoa(image_path);
         var num_in_row = 7;
         if (count % num_in_row == 1)
             $(_table).append('<tr>');
-        var now = new Date();
-        now_str = now.toLocaleDateString() + ' ' + now.toLocaleTimeString() +
+        td_str = '<td align=center style="color:red;width:150px">存储空间过低！<br>'
+        td_str += '仅剩' + Math.round(remain/1024) + 'MB。<td>'
+        $(_table).append(td_str)
+        if (count % num_in_row == num_in_row)
+            $(_table).append('</tr>');
+    }
+
+    function appendTimeLapseTable(image_path, ts = new Date()) {
+        _table = $('table#tableTimeLapses');
+        img_path_b64 = window.btoa(image_path);
+        url_tb = urlTb + img_path_b64 + '?ratio=0.25';
+        url_ig = urlIg + img_path_b64;
+        var num_in_row = 7;
+        if (count % num_in_row == 1)
+            $(_table).append('<tr>');
+        ts_str = ts.toLocaleDateString() + ' ' + ts.toLocaleTimeString() +
             ' (' + count + ')';
-        $(_table).append('<td align=center><img style="width:150px;height:100px" src="' +
-                         url + '"><br>' + now_str + '</td>');
+        $(_table).append('<td align=center><a href="' + url_ig + '" target=_blank>' +
+                         '<img style="width:150px;height:100px" src="' +
+                         url_tb + '"></a><br>' + ts_str + '</td>');
         if (count % num_in_row == num_in_row)
             $(_table).append('</tr>');
     }
@@ -389,12 +415,13 @@
         _table = $('table#tableTimeLapses');
         $(_table).empty();
 
-        left = $(txtIntVal).val();
-        $(txtIntVal).attr('disabled', '1');
+        left = $(txtIntVal).val() - 1;
         $(txtToWait).html(left);
+        $(txtIntVal).attr('disabled', '1');
         $(btnTlStop).removeAttr('disabled');
         $(btnTlStart).attr('disabled', '1');
-        count = 0;
+        count = 1;
+        take_a_shot();
         timer = setInterval('countDown()', 1000);
     }
 
