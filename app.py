@@ -21,7 +21,7 @@ app = Flask(__name__)
 _camera = None
 
 
-@app.route('/')
+@app.route('/demo')
 def index():
     """Video streaming home page."""
     return render_template('index.html')
@@ -123,13 +123,13 @@ def get_configs():
 
     for child in config.get_children():
         label = '{} ({}),'.format(child.get_label(), child.get_name())
-        print label, child.get_type(), child.count_children()
+        print(label, child.get_type(), child.count_children())
         child_data = {'name': child.get_name(), 'desc': child.get_label(), 'type': child.get_type(), 'count': child.count_children(), 'items': []}
         #if child.get_name() == 'settings':
         if child.get_name() != '':
             for item in child.get_children():
                 item_label = '  {} ({}),'.format(item.get_label(), item.get_name())
-                print item_label, str(item.get_type())+',', item.get_value()
+                print(item_label, str(item.get_type())+',', item.get_value())
                 item_data = {'name': item.get_name(), 'desc': item.get_label(), 'type': item.get_type(),
                             #'count_child': item.count_children(),
                              'ro': item.get_readonly(), 'value':''}
@@ -149,7 +149,7 @@ def get_configs():
                         item_data['hi'] = hi
                         item_data['inc'] = inc
                     except Exception as e:
-                        print 'Exception on getting value: ', e
+                        print('Exception on getting value: ', e)
                     else:
                         value = item.get_value()
 
@@ -244,10 +244,14 @@ def _set_config(name, value):
             abort(400)
 
         # set
-        if type(value) is unicode:
-            item.set_value(str(value))
-        else:
+        if sys.version_info.major >= 3:
             item.set_value(value)
+        else:
+            if type(value) is unicode:
+                item.set_value(str(value))
+            else:
+                item.set_value(value)
+        
         camera.set_config(config)
         #yield camera
 
@@ -282,6 +286,8 @@ def capture_image(filename='capture_image.jpg'):
     camera_file.save(filename)
     camera.file_delete(path.folder, path.name)
     camera.exit()
+    if sys.version_info.major >= 3:
+        filename = filename.encode('utf-8')
     return get_thumbnail(base64.b64encode(filename))
 
 
@@ -383,39 +389,9 @@ def _get_exif(path):
     return exif_json
 
 
-################
-## piggyphoto ##
-################
-import piggyphoto
-
-@app.route('/api/configs0')
-def list_config():
-    cam = piggyphoto.camera()
-    config = cam.list_config()
-    return Response(json.dumps({'config': config}), mimetype='application/json')
-
-
-@app.route('/api/capture_preview0')
-def capture_preview0(filename='capture_preview.jpg'):
-    cam = piggyphoto.camera()
-    cam.capture_preview(filename)
-    with open(filename, "rb") as f:
-        image = f.read()
-    return Response(image, mimetype='image/jpeg')
-
-
-@app.route('/api/capture_image0')
-def capture_image0(filename='capture_image.jpg'):
-    cam = piggyphoto.camera()
-    cam.capture_image(filename)
-    with open(filename, "rb") as f:
-        image = f.read()
-    return Response(image, mimetype='image/jpeg')
-
-
 if __name__ == '__main__':
     SWAGGER_URL='/api/docs'
     swaggerui_blueprint = get_swaggerui_blueprint('/api/docs', '/api/spec', config={'app_name': "Flask Author DB"})
     app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
-    #app.run(host='0.0.0.0', threaded=True, debug=True)
-    app.run(host='0.0.0.0', debug=True)
+    app.run(host='0.0.0.0', threaded=True, debug=True)
+   

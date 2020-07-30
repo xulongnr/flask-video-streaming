@@ -1,4 +1,5 @@
 import io
+import sys
 # import time
 import gphoto2 as gp
 from base_camera import BaseCamera
@@ -17,7 +18,10 @@ class Camera(BaseCamera):
 
             camera_file = gp.check_result(gp.gp_camera_capture_preview(Camera.gp_cam))
             file_data = gp.check_result(gp.gp_file_get_data_and_size(camera_file))
-            yield ''.join(io.BytesIO(file_data))
+            if sys.version_info.major >= 3:
+                yield file_data
+            else:
+                yield ''.join(io.BytesIO(file_data))
 
     def __del__(self):
         if Camera.gp_cam != None:

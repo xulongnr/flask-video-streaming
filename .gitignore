@@ -57,3 +57,5 @@ target/
 *.JPG
 *.mp4
 *.MP4
+
+poetry.lock
