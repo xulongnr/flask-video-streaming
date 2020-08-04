@@ -5,6 +5,7 @@ import os
 import sys
 import time
 import json
+import uuid
 import base64
 from datetime import datetime
 from contextlib import contextmanager
@@ -15,11 +16,14 @@ from flask_swagger_ui import get_swaggerui_blueprint
 from PIL import Image
 
 import gphoto2 as gp
-
+from redis_queue import RedisQueue, RedisMessageQueue
 
 app = Flask(__name__)
 _camera = None
 
+q_actions = RedisQueue('camera_actions')
+mq_result = RedisMessageQueue('camera_result')
+MQ_CHANNEL = b'mq:camera_result'
 
 @app.route('/demo')
 def index():
@@ -33,6 +37,12 @@ def spec():
     swag['info']['version'] = "1.0"
     swag['info']['title'] = "Flask Author DB"
     return jsonify(swag)
+
+
+def gen_id():
+    id = uuid.uuid1()
+    # print('uuid:', id)
+    return str(id)
 
 
 @contextmanager
@@ -197,12 +207,40 @@ def get_configs():
     return Response(json.dumps(data, sort_keys=True), mimetype='application/json')
 
 
+@app.route('/api/configs_q')
+def get_configs_queue():
+    id = gen_id()
+    q_actions.put(json.dumps({"id": id, "action_type": 3}))
+    ps = mq_result.subscribe()
+    data = None
+    while True:
+        item = ps.get_message()
+        if item and item['type'] == 'message' and item['channel'] == MQ_CHANNEL:
+            data = json.loads(item['data'])
+            # print('data:', data)
+            if data['type'] == 3 and data['id'] == id:
+                break
+
+            time.sleep(0.1)
+
+    ps.unsubscribe()
+    if data and data['configs']:
+        return Response(data['configs'], mimetype='application/json')
+
+
 @app.route('/api/config')
 def get_config_params():
     config_name = request.args.get('name')
     if not config_name:
         abort(400)
     return get_config(config_name)
+
+@app.route('/api/config_q')
+def get_config_params_queue():
+    config_name = request.args.get('name')
+    if not config_name:
+        abort(400)
+    return get_config_queue(config_name)
 
 
 @app.route('/api/config/<string:config_name>')
@@ -213,6 +251,25 @@ def get_config(config_name):
     item = config.get_child_by_name(str(config_name))
     camera.exit()
     return Response(json.dumps({config_name: item.get_value()}), mimetype='application/json')
+
+@app.route('/api/config_q/<string:config_name>')
+def get_config_queue(config_name):
+    id = gen_id()
+    q_actions.put(json.dumps({"id": id, "action_type": 4, "config": {config_name: ""}}))
+    ps = mq_result.subscribe()
+    data = None
+    while True:
+        item = ps.get_message()
+        if item and item['type'] == 'message' and item['channel'] == MQ_CHANNEL:
+            data = json.loads(item['data'])
+            if data['type'] == 4 and data['id'] == id:
+                break
+        time.sleep(0.1)
+
+    ps.unsubscribe()
+    print('data:', data)
+    if data and data['config']:
+        return jsonify({config_name: data['config'][config_name]})
 
 
 @app.route('/api/config', methods=['PUT'])
@@ -231,6 +288,24 @@ def set_config(config_name):
 
     config_value = request.json['value']
     return _set_config(config_name, config_value)
+
+
+@app.route('/api/config_q', methods=['PUT'])
+def set_config_params_queue():
+    if not request.json or not 'name' in request.json or not 'value' in request.json:
+        abort(400)
+    config_name = request.json['name']
+    config_value = request.json['value']
+    return _set_config_q(config_name, config_value)
+
+
+@app.route('/api/config_q/<string:config_name>', methods=['PUT'])
+def set_config_queue(config_name):
+    if not request.json or not 'value' in request.json:
+        abort(400)
+
+    config_value = request.json['value']
+    return _set_config_q(config_name, config_value)
 
 
 def _set_config(name, value):
@@ -267,6 +342,27 @@ def _set_config(name, value):
 
     return jsonify({name: config_value})
 
+def _set_config_q(name, value):
+    id = gen_id()
+    req = {"id": id, "action_type": 5, "config": {
+        name: value
+    }}
+    print('req:', req)
+    q_actions.put(json.dumps(req))
+    ps = mq_result.subscribe()
+    data = None
+    while True:
+        item = ps.get_message()
+        if item and item['type'] == 'message' and item['channel'] == MQ_CHANNEL:
+            data = json.loads(item['data'])
+            if data['type'] == 5 and data['id'] == id:
+                break
+        time.sleep(0.1)
+    
+    ps.unsubscribe()
+    print('data:', data)
+    if data and data['config']:
+        return jsonify({name: data['config'][name]})
 
 @app.route('/api/summary')
 def get_summary():
@@ -289,6 +385,32 @@ def capture_image(filename='capture_image.jpg'):
     if sys.version_info.major >= 3:
         filename = filename.encode('utf-8')
     return get_thumbnail(base64.b64encode(filename))
+
+
+@app.route('/api/capture_image_q')
+def capture_image_queue(filename='capture_image.jpg'):
+    id = gen_id()
+    # filename = id[-12:] + '-' + filename
+    filename = id + '_' + filename
+    q_actions.put(json.dumps({"id": id, "action_type": 2, "download_name": filename, "download_path": "./tmp"}))
+    ps = mq_result.subscribe()
+    data = None
+    while True:
+        item = ps.get_message()
+        if item and item['type'] == 'message' and item['channel'] == MQ_CHANNEL:
+            data = json.loads(item['data'])
+            # print('data:', data)
+            if data['type'] == 2 and data['id'] == id:
+                break
+    
+        time.sleep(0.1)
+
+    ps.unsubscribe()
+    if data and data['path']:
+        filename = data['path']
+        if sys.version_info.major >= 3:
+            filename = filename.encode('utf-8')
+        return get_thumbnail(base64.b64encode(filename))
 
 
 @app.route('/api/capture_image_and_download')
@@ -352,13 +474,35 @@ def get_image(image_name):
 
 
 @app.route('/api/capture_preview')
-def capture_preview(filename='capture_preview.jpg'):
+def capture_preview():
     camera = gp.Camera()
     camera.init()
     camera_file = gp.check_result(gp.gp_camera_capture_preview(camera))
     file_data = gp.check_result(gp.gp_file_get_data_and_size(camera_file))
     camera.exit()
     return Response(io.BytesIO(file_data), mimetype='image/jpeg')
+
+@app.route('/api/capture_preview_q')
+def capture_preview_queue():
+    id = gen_id()
+    q_actions.put(json.dumps({"id": id, "action_type": 0}))
+    ps = mq_result.subscribe()
+    data = None
+    while True:
+        item = ps.get_message()
+        if item and item['type'] == 'message' and item['channel'] == MQ_CHANNEL:
+            data = json.loads(item['data'])
+            # print('data', data)
+            if data['type'] == 0 and data['id'] == id:
+                break
+    
+        time.sleep(0.1)
+
+    ps.unsubscribe()
+    if data and data['data']:
+        # print('type:', data['type'])
+        file_data = base64.b64decode(data['data'][2:-1])
+        return Response(io.BytesIO(file_data), mimetype='image/jpeg')
 
 
 @app.route('/api/exif_image')
