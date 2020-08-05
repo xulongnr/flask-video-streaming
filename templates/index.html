@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>GPhoto Demo</title>
+	<title>GPhoto Demo</title>
   </head>
   <body>
     <h1 onClick='onEnableLV()'>GP Demo</h1>
@@ -9,15 +9,14 @@
     <input disabled='1' id='btnLv' type=button value='开启' onclick="onSwitchLiveview();" title='关闭需要等待10秒钟'>
     </h2>
     <!-- <img id='imgLv' src="{{ url_for('live_view') }}" style="border:1px;width:528px;height:352px"> -->
-    <img id='imgLv' src='' style="border:1px;width:528px;height:352px;display:none">
-    <hr>
+	<img id='imgLv' src='' style="border:1px;width:528px;height:352px;display:none">
+	<hr>
 
     <h2>Preview Capture
     <input id='btnPv' type=button value='开启' onclick="onSwitchPreview();">
     </h2>
-    <!-- <img id='imgPv' src="{{ url_for('capture_preview') }}?" style="border:1px;width:528px;height:352px"> -->
-    <img id='imgPv' src='' style="border:1px;width:528px;height:352px;display:none">
-    <hr>
+	<img id='imgPv' src='' style="border:1px;width:528px;height:352px;display:none">
+	<hr>
 
     <h2>Image Capture
     <input id='btnIv' type=button value='开启' onclick="onSwitchImage();">
@@ -99,8 +98,21 @@
 	function sleep(time) {
 	    var startTime = new Date().getTime() + parseInt(time, 10);
 	    while (new Date().getTime() < startTime) {}
-	};
+	}
 
+	function bindSrc(imgs) {
+		imgs.each(function(idx, one) {
+			$(this).attr('src', $(this).data('src'))
+		})
+	}
+
+	function updateDelayPreview() {
+		$(btnPv).removeAttr('disabled');
+		$(btnPv).attr('value', '刷新');
+		$(imgPv).removeAttr('data-src');
+		$(imgPv).fadeOut();
+		$(imgPv).fadeIn();
+	}
 	function onSwitchPreview() {
 
 		if (!bPvOn) {
@@ -108,20 +120,33 @@
 			bIvOn = false;
 			bLvOn = false;
 			$(imgIv).css({display: 'none'});
-			$(imgPv).css({display: 'block'});
-			$(imgPv).attr('src', urlPv);
+			// $(imgPv).css({display: 'block'});
+			$(imgPv).attr('data-src', urlPv);
+			var imgs = $('img[data-src]');
+			imgs.each(function(idx, one) {
+				var img = new Image();
+				img.src = $(this).data('src')
+				img.onload = function() {
+					bindSrc(imgs);
+					setTimeout('updateDelayPreview()', 3000);
+				}
+			})
+			
 			$(imgIv).attr('src', '');
-			$(btnPv).attr('value', '刷新');
+			$(btnPv).attr('value', '开启中...');
+			$(btnPv).attr('disabled', '1');
 			$(btnIv).attr('value', '开启');
             $(btnEi).attr('disabled', 'disabled');
             $(taIv).hide();
-            $(btnEh).hide();
-
+			$(btnEh).hide();
 		} else {
 			// refresh
 			$(imgPv).attr('src', $(imgPv).attr('src').split('?')[0]+'?'+Math.random());
+			$(btnPv).attr('value', '刷新中...');
+			$(btnPv).attr('disabled', '1');
+			// setTimeout('updateDelayPreview()', 2000);			
+			$(imgPv).attr('onload', "setTimeout('updateDelayPreview()', 3000)");
 		}
-
 	}
 
     function onEnableLV() {
@@ -266,7 +291,11 @@
 	}
 	function updateDelay() {
 		//sleep(1000);
+		$(btnIv).removeAttr('disabled');
 		$(btnIv).attr('value', '刷新');
+		$(imgIv).removeAttr('data-src');
+		$(imgIv).fadeOut();
+		$(imgIv).fadeIn();
 	}
 	function onSwitchImage() {
 		if (!bIvOn) {
@@ -274,22 +303,35 @@
 			bPvOn = false;
 			bLvOn = false;
 			$(imgPv).css({display: 'none'});
-			$(imgIv).css({display: 'block'});
+			// $(imgIv).css({display: 'block'});
 			$(btnEi).removeAttr('disabled');
-			$(imgIv).attr('src', urlIv);
+			// $(imgIv).attr('src', urlIv);
+			$(imgIv).attr('data-src', urlIv);
+			var imgs = $('img[data-src]');
+			imgs.each(function(idx, one) {
+				var img = new Image();
+				img.src = $(this).data('src')
+				img.onload = function() {
+					bindSrc(imgs);
+					setTimeout('updateDelay()', 3000);
+				}
+			})
+
 			$(imgPv).attr('src', '');
 			$(btnPv).attr('value', '开启');
 			$(btnIv).attr('value', '开启中...');
-			setTimeout('updateDelay()', 2000);
+			$(btnIv).attr('disabled', '1');
+			// setTimeout('updateDelay()', 3000);
 		} else {
 			// refresh
 			$(imgIv).attr('src', $(imgIv).attr('src').split('?')[0]+'?'+Math.random());
 			$(btnIv).attr('value', '刷新中...');
+			$(btnIv).attr('disabled', '1');
 			$(taIv).hide();
             $(btnEh).hide();
-			setTimeout('updateDelay()', 2000);
+			// setTimeout('updateDelay()', 3000);
+			$(imgIv).attr('onload', "setTimeout('updateDelay()', 3000)");
 		}
-
 	}
 
 	function onSwitchLiveview() {
@@ -432,7 +474,7 @@
         $(txtToWait).html('');
         $(btnTlStart).removeAttr('disabled');
         $(btnTlStop).attr('disabled', '1');
-    }
+	}
 
   </script>
 </html>
