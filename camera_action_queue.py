@@ -4,6 +4,7 @@
 
 from redis_queue import RedisQueue, RedisMessageQueue
 import io
+import os
 import sys
 import time
 import json
@@ -174,7 +175,10 @@ while True:
                 file_info = camera.file_get_info(file_path.folder, file_path.name)
                 camera_file = camera.file_get(file_path.folder, file_path.name, gp.GP_FILE_TYPE_NORMAL)
                 if not file_name:
-                    file_name = datetime.fromtimestamp(file_info.file.mtime).isoformat(' ') + ' ' + file_path.name
+                    file_suffix = os.path.splitext(file_path.name)[1]
+                    file_name = datetime.fromtimestamp(file_info.file.mtime).isoformat('_') + file_suffix
+                if not os.path.exists(download_path):
+                    os.makedirs(download_path)
                 saved_file_path = download_path + '/' + file_name
                 camera_file.save(saved_file_path)
                 camera.file_delete(file_path.folder, file_path.name)

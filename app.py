@@ -390,8 +390,8 @@ def capture_image(filename='capture_image.jpg'):
 @app.route('/api/capture_image_q')
 def capture_image_queue(filename='capture_image.jpg'):
     id = gen_id()
-    # filename = id[-12:] + '-' + filename
-    filename = id + '_' + filename
+    filename = id[-12:] + '-' + filename
+    # filename = id + '_' + filename
     q_actions.put(json.dumps({"id": id, "action_type": 2, "download_name": filename, "download_path": "./tmp"}))
     ps = mq_result.subscribe()
     data = None
@@ -415,7 +415,6 @@ def capture_image_queue(filename='capture_image.jpg'):
 
 @app.route('/api/capture_image_and_download')
 def capture_image_and_download(saved_path='download'):
-    image_suffix = '.jpg'
     saved_path_param = request.args.get('saved_path')
     if saved_path_param:
         saved_path = saved_path_param
@@ -424,6 +423,7 @@ def capture_image_and_download(saved_path='download'):
 
     with configured_camera() as camera:
         file_path = camera.capture(gp.GP_CAPTURE_IMAGE)
+        image_suffix = os.path.splitext(file_path.name)[1]
         file_info = camera.file_get_info(file_path.folder, file_path.name)
         camera_file = camera.file_get(file_path.folder, file_path.name, gp.GP_FILE_TYPE_NORMAL)
         # print 'time1:', time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
@@ -436,6 +436,35 @@ def capture_image_and_download(saved_path='download'):
         camera_file.save(saved_file_path)
         camera.file_delete(file_path.folder, file_path.name)
         return Response(json.dumps({"filepath": saved_file_path}), mimetype='application/json')
+
+
+@app.route('/api/capture_image_and_download_q')
+def capture_image_and_download_queue(saved_path='./download'):
+    saved_path_param = request.args.get('saved_path')
+    if saved_path_param:
+        saved_path = saved_path_param
+    if not os.path.exists(saved_path):
+        os.makedirs(saved_path)
+
+    id = gen_id()
+    q_actions.put(json.dumps({"id": id, "action_type": 2, "download_path": saved_path}))
+    ps = mq_result.subscribe()
+    data = None
+    while True:
+        item = ps.get_message()
+        if item and item['type'] == 'message' and item['channel'] == MQ_CHANNEL:
+            data = json.loads(item['data'])
+            # print('data:', data)
+            if data['type'] == 2 and data['id'] == id:
+                break
+    
+        time.sleep(0.1)
+
+    ps.unsubscribe()
+    if data and data['path']:
+        filename = data['path']
+        return Response(json.dumps({"filepath": filename}), 
+                        mimetype='application/json')
 
 
 @app.route('/api/storage_info')
@@ -457,6 +486,7 @@ def get_thumbnail(image_name, ratio=0.5):
     if request.args.get('ratio'):
         ratio = float(request.args.get('ratio'))
     image_name = base64.b64decode(image_name)
+    print('name:', image_name)
     with Image.open(image_name) as image:
         thumbnail_size = (image.size[0] * ratio, image.size[1] * ratio)
         image.thumbnail(thumbnail_size, Image.ANTIALIAS)
