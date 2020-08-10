@@ -176,8 +176,11 @@
 	}
 
 	function initConfigTable(config) {
-		filters = ['iso', 'shutterspeed', 'aperture', 'exposurecompensation', 'whitebalance', 'autoexposuremode', 'meteringmode', 'picturestyle', 'imageformat', 'aspectratio'];
-		desc_cn = ['ISO', '快门', '光圈', '曝光补偿', '白平衡', '曝光模式', '测光模式', '图片风格', '保存格式', '横竖比'];
+		filters = ['iso', 'shutterspeed', 'aperture', 'exposurecompensation', 'whitebalance', 
+				   'autoexposuremode', 'meteringmode', 'picturestyle', 
+				   'imageformat', 'imageformatsd', 'capturetarget', 'aspectratio'];
+		desc_cn = ['ISO', '快门', '光圈', '曝光补偿', '白平衡', '曝光模式', '测光模式',
+				   '图片风格', '保存格式', '卡内保存格式', '存储介质', '横竖比'];
 		_table = $('table#tableConfigs');
 		tr_tmpl = "<tr><td/><td/>\
 		<td><select name='' style='width:120px' onChange='onChangeSelect(this)'/></td>\
@@ -200,7 +203,7 @@
 					$.each(v1.choices, (k2, v2) => {
 						var selected = '';
 						if (k2 == v1.choice_index) selected = ' selected';
-						$(_sel).append('<option value='+v2+selected+'>'+v2+'</option>');
+						$(_sel).append('<option value="'+v2+'" '+selected+'>'+v2+'</option>');
 					});
 				}
 			});
@@ -209,6 +212,7 @@
 
 	function onChangeSelect(obj) {
 		name = obj.name;
+		// value = obj.options.selectedIndex;
 		value = obj.options[obj.options.selectedIndex].value;
 		console.debug('name:', name, 'value:', value);
 		if ('' == value || '' == name) return;

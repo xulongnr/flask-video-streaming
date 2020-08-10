@@ -27,13 +27,13 @@ def _get_configs(_camera):
         return ''
 
     for child in config.get_children():
-        label = '{} ({}),'.format(child.get_label(), child.get_name())
+        # label = '{} ({}),'.format(child.get_label(), child.get_name())
         # print(label, child.get_type(), child.count_children())
         child_data = {'name': child.get_name(), 'desc': child.get_label(), 'type': child.get_type(), 'count': child.count_children(), 'items': []}
         # if child.get_name() == 'settings':
         if child.get_name() != '':
             for item in child.get_children():
-                item_label = '  {} ({}),'.format(item.get_label(), item.get_name())
+                # item_label = '  {} ({}),'.format(item.get_label(), item.get_name())
                 # print(item_label, str(item.get_type())+',', item.get_value())
                 item_data = {'name': item.get_name(), 'desc': item.get_label(), 'type': item.get_type(),
                             #'count_child': item.count_children(),
@@ -175,7 +175,8 @@ while True:
                 file_info = camera.file_get_info(file_path.folder, file_path.name)
                 camera_file = camera.file_get(file_path.folder, file_path.name, gp.GP_FILE_TYPE_NORMAL)
                 if not file_name:
-                    file_suffix = os.path.splitext(file_path.name)[1]
+                    # file_suffix = os.path.splitext(file_path.name)[1]
+                    file_suffix = '_' + file_path.name
                     file_name = datetime.fromtimestamp(file_info.file.mtime).isoformat('_') + file_suffix
                 if not os.path.exists(download_path):
                     os.makedirs(download_path)

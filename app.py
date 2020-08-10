@@ -345,7 +345,7 @@ def _set_config(name, value):
 def _set_config_q(name, value):
     id = gen_id()
     req = {"id": id, "action_type": 5, "config": {
-        name: value
+        name: str(value)
     }}
     print('req:', req)
     q_actions.put(json.dumps(req))
